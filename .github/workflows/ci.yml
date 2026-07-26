@@ -45,10 +45,7 @@ jobs:
 
       - run: npm run build
 
-      # Catches new high/critical advisories as they're published upstream,
-      # without failing on the currently-acknowledged moderate one (Next.js
-      # bundles its own vulnerable postcss even at the latest 16.2.x patch —
-      # see CHANGELOG.md 0.4.0 and MIGRATION.md; not fixable from here short
-      # of a real Next.js release, so it's excluded from the gate rather
-      # than left permanently red).
+      # Catches new high/critical advisories as they're published upstream.
+      # Transitive dep vulnerabilities (postcss, sharp, @hono/node-server)
+      # are pinned via root package.json overrides — see commit history.
       - run: npm audit --audit-level=high
