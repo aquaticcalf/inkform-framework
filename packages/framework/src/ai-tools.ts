@@ -67,8 +67,8 @@ export const AI_TOOLS: AiTool[] = [
   { kind: 'prompt', id: 'google', label: 'Ask Google', base: 'https://www.google.com/search', param: 'q' },
   { kind: 'mcp', id: 'cursor', label: 'Open in Cursor', format: 'cursor' },
   { kind: 'mcp', id: 'vscode', label: 'Open in VS Code', format: 'vscode' },
-  { kind: 'command', id: 'opencode', label: 'Copy OpenCode command', command: 'opencode run "{prompt}"' },
-  { kind: 'command', id: 'claude-code', label: 'Copy Claude Code command', command: 'claude "{prompt}"' },
+  { kind: 'command', id: 'opencode', label: 'OpenCode command', command: 'opencode run "{prompt}"' },
+  { kind: 'command', id: 'claude-code', label: 'Claude Code command', command: 'claude "{prompt}"' },
   { kind: 'prompt', id: 'perplexity', label: 'Ask Perplexity', base: 'https://www.perplexity.ai/search', param: 'q' },
   { kind: 'prompt', id: 'grok', label: 'Ask Grok', base: 'https://grok.com/', param: 'q' },
 ];
