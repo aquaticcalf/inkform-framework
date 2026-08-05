@@ -45,6 +45,7 @@
     "./ai": "./src/ai/index.ts",
     "./llms-txt": "./src/llms-txt.ts",
     "./mdx": "./src/mdx.tsx",
+    "./markdown": "./src/markdown.ts",
     "./components": "./src/components.tsx",
     "./docs-shell": "./src/docs-shell.tsx",
     "./scalar-theme": "./src/scalar-theme.ts",
