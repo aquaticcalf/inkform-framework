@@ -16,27 +16,29 @@
  *    resulting mdast via `mdast-util-to-markdown` — deliberately NOT a regex
  *    strip, which would silently lose data-bearing components.
  *
- *    Component policy (nothing is dropped unless it's pure machinery):
+ *    Component policy — structural, no hardcoded component or attribute
+ *    names (the site's own widgets are unknown to this package):
  *    - `mdxjsEsm` (imports/exports) → removed. This is the "a component that
  *      imports another component / another .mdx" answer: the import machinery
  *      disappears, but every `<Thing />` *use site* stays in the output.
  *    - `:::callout` directives → blockquote (the closest markdown-native
  *      shape for what `<Mdx>` maps onto `<Callout>`).
- *    - Pure layout wrappers (`Tabs`, `Tab`, `CodeGroup`, `Columns`) →
- *      children-only: the tag collapses, the inner content stays.
- *    - Every other MDX component → the JSX tag is KEPT with its attributes,
- *      with children nested inside. So `<Playground template="react" />`,
- *      `<ApiReference endpoint="GET /pokemon" />`, and
- *      `<ApiLink operationId="get-pokemon">Get a Pokémon</ApiLink>` all survive
- *      verbatim — prop-carried data is never lost, and `{expr}` expressions
- *      are left as-is (unresolvable without executing the component).
+ *    - A component WITH children → a wrapper; only the inner content is kept.
+ *      If any attribute value looks like a URL (by value — `href`, `url`,
+ *      `src`, anything), it's surfaced as a markdown link; if one reads as a
+ *      human label (contains a space or uppercase), it's surfaced as bold.
+ *    - A self-closing component (no children) → the JSX tag is kept with its
+ *      attributes, since props are its only content: `<Playground
+ *      template="react" />`, `<ApiReference endpoint="GET /pokemon" />`. `{expr}`
+ *      expressions are left as-is (unresolvable without executing the
+ *      component).
  *
  * 2. `buildMarkdownPage()` — resolves a slug to the Markdown for ONE page:
  *    a doc page, an API operation (`<apiBase>/operations/<operationId>`), a
  *    blog post, or a changelog entry. The per-page counterpart to
  *    `buildLlmsFullTxt()` (whole corpus) and the MCP tools' `getDoc()`.
- *    Each page gets a `# title` + `URL:` header so agents know where the
- *    content came from.
+ *    Each page starts with a `# title` header; the page's own URL is implied
+ *    by the `.md` request itself, so no URL is echoed in the body.
  *
  * 3. `createMarkdownHandler()` — a Next.js route-handler factory (mirrors
  *    `createMcpHandler`). Mount it at `app/markdown/[[...slug]]/route.ts`:
@@ -79,11 +81,38 @@ import { loadApiDocument } from './mcp/tools';
 import { renderOperationMarkdown } from './openapi-engine/markdown';
 
 /**
- * Pure layout wrappers — the tag carries no content of its own, so only the
- * inner content survives. Everything else keeps its JSX tag (props are data;
- * see the module docstring).
+ * First attribute value that looks like a URL — detected by VALUE, not by
+ * attribute name (so `href`, `url`, `src`, a custom prop, anything). Used to
+ * surface a component's destination as a real markdown link instead of dead
+ * text (e.g. a `<Card>` with an `href`).
  */
-const LAYOUT_WRAPPERS = new Set(['Tabs', 'Tab', 'CodeGroup', 'Columns']);
+function wrapperUrl(node: { attributes?: unknown[] }): string | undefined {
+  for (const raw of node.attributes ?? []) {
+    const attr = raw as { value?: unknown };
+    if (typeof attr.value !== 'string') continue;
+    const v = attr.value;
+    // anchor, relative path, or absolute URL — not bare text like "unlock"
+    if (/^(#|\/|\.\/|https?:\/\/|mailto:)/.test(v)) return v;
+  }
+  return undefined;
+}
+
+/**
+ * First attribute value that reads as a human label — a space or an
+ * uppercase letter (e.g. `title="No auth required"`, `caption="…"`). Bare
+ * identifiers like `type="info"` or `icon="unlock"` are skipped: they're
+ * variants/decoration, not content. Detected by value, not by name.
+ */
+function label(node: { attributes?: unknown[] }): string | undefined {
+  for (const raw of node.attributes ?? []) {
+    const attr = raw as { value?: unknown };
+    if (typeof attr.value !== 'string') continue;
+    const v = attr.value;
+    if (/^(#|\/|\.\/|https?:\/\/|mailto:)/.test(v)) continue; // it's a URL
+    if (/[A-Z\s]/.test(v) && v.length <= 80) return v;
+  }
+  return undefined;
+}
 
 /** mdast-util-mdx-jsx's own to-markdown handlers, so we can delegate to them. */
 const mdxJsxHandlers = mdxJsxToMarkdown().handlers!;
@@ -153,20 +182,29 @@ export function processMarkdown(source: string): string {
     extensions: [gfmToMarkdown(), mdxToMarkdown()],
     handlers: {
       mdxJsxFlowElement(node, parent, state, info) {
-        const name = typeof node.name === 'string' ? node.name : '';
-        if (LAYOUT_WRAPPERS.has(name)) {
-          if (node.children.length === 0) return '';
-          return state.containerFlow(node, info);
+        // No children → self-closing data component (e.g. <Playground
+        // template="react" />) — keep its tag, props are the content.
+        if (node.children.length === 0) {
+          return mdxFlowHandler(node, parent, state, info);
         }
-        return mdxFlowHandler(node, parent, state, info);
+        // Has children → a wrapper; keep the inner content. If an attribute
+        // carries a URL (by value), surface it as a link; if one carries a
+        // human-readable label (by value), surface it as bold text.
+        const url = wrapperUrl(node);
+        const text = label(node);
+        const head = text ? (url ? `**[${text}](${url})**` : `**${text}**`) : url ? `[${url}](${url})` : '';
+        const body = state.containerFlow(node, info);
+        return head ? `${head}\n\n${body}` : body;
       },
       mdxJsxTextElement(node, parent, state, info) {
-        const name = typeof node.name === 'string' ? node.name : '';
-        if (LAYOUT_WRAPPERS.has(name)) {
-          if (node.children.length === 0) return '';
-          return state.containerPhrasing(node, info);
+        if (node.children.length === 0) {
+          return mdxTextHandler(node, parent, state, info);
         }
-        return mdxTextHandler(node, parent, state, info);
+        const url = wrapperUrl(node);
+        const text = label(node);
+        const head = text ? (url ? `**[${text}](${url})**` : `**${text}**`) : url ? `[${url}](${url})` : '';
+        const body = state.containerPhrasing(node, info);
+        return head ? `${head} ${body}` : body;
       },
     },
   });
@@ -187,10 +225,15 @@ export interface BuildMarkdownPageOptions {
   apiBasePath?: string;
 }
 
-function composePage(title: string, url: string, description: string | null, content: string): string {
-  const parts = [`# ${title}`, '', `URL: ${url}`];
+/** Strip a leading `# H1` from the body — composePage already emits the title. */
+function stripLeadingH1(content: string): string {
+  return content.replace(/^#\s+.+\n+/, '').trim();
+}
+
+function composePage(title: string, description: string | null, content: string): string {
+  const parts = [`# ${title}`];
   if (description) parts.push('', description);
-  parts.push('', content.trim());
+  parts.push('', stripLeadingH1(content));
   return parts.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
 }
 
@@ -222,21 +265,21 @@ export async function buildMarkdownPage(
     if (!markdown) return null;
     const info = document.info as { title?: unknown } | undefined;
     const title = typeof info?.title === 'string' ? info.title : 'API Reference';
-    return composePage(title, `/${apiBase}/operations/${operationId}`, null, markdown);
+    return composePage(title, null, markdown);
   }
 
   // Blog post — blog/<postSlug>.
   if (segments[0] === 'blog' && segments.length === 2) {
     const post = loadBlogPost(segments[1]);
     if (!post) return null;
-    return composePage(post.title, `/blog/${post.slug}`, post.description, processMarkdown(post.content));
+    return composePage(post.title, post.description, processMarkdown(post.content));
   }
 
   // Changelog entry — changelog/<slug> (entries render on the single /changelog page).
   if (segments[0] === 'changelog' && segments.length === 2) {
     const entry = loadChangelogEntries().find((e) => e.slug === segments[1]);
     if (!entry) return null;
-    return composePage(entry.title, `/changelog/${entry.slug}`, entry.version, processMarkdown(entry.content));
+    return composePage(entry.title, entry.version, processMarkdown(entry.content));
   }
 
   // Doc page — the docs nav owns every other slug ('' = index).
@@ -245,7 +288,7 @@ export async function buildMarkdownPage(
   const loaded = loadDocPage(page.file);
   if (!loaded) return null;
   const description = typeof loaded.data.description === 'string' ? loaded.data.description : null;
-  return composePage(page.title, `/${normalizedSlug}`, description, processMarkdown(loaded.content));
+  return composePage(page.title, description, processMarkdown(loaded.content));
 }
 
 // ── createMarkdownHandler ────────────────────────────────────────────────────

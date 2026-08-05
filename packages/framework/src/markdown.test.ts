@@ -32,7 +32,9 @@ Some text.
 `,
     );
     expect(md).toContain('<Playground template="react" />');
-    expect(md).toContain('<ApiLink operationId="get-pokemon">Get a Pokémon</ApiLink>');
+    // ApiLink HAS children, so it's treated as a wrapper — its text survives.
+    expect(md).toContain('Get a Pokémon');
+    expect(md).not.toContain('<ApiLink');
   });
 
   it('collapses layout wrappers to their inner content', () => {
@@ -81,17 +83,15 @@ describe('buildMarkdownPage (real pokeapi-docs content)', () => {
     delete process.env.DOCS_CONTENT_ROOT;
   });
 
-  it('returns a doc page with a title + URL header', async () => {
+  it('returns a doc page with a title header', async () => {
     const md = await buildMarkdownPage('quickstart');
     expect(md).toMatch(/^# Quickstart/);
-    expect(md).toContain('URL: /quickstart');
     expect(md).toContain('PokéAPI requires zero configuration.');
   });
 
   it('returns the index page for an empty slug', async () => {
     const md = await buildMarkdownPage('');
     expect(md).toMatch(/^# /);
-    expect(md).toContain('URL: /');
   });
 
   it('returns an API operation under <apiBase>/operations/<operationId>', async () => {
@@ -103,12 +103,12 @@ describe('buildMarkdownPage (real pokeapi-docs content)', () => {
 
   it('returns a blog post under blog/<slug>', async () => {
     const md = await buildMarkdownPage('blog/building-a-pokedex-with-nextjs');
-    expect(md).toContain('URL: /blog/building-a-pokedex-with-nextjs');
+    expect(md).toMatch(/^# /);
   });
 
   it('returns a changelog entry under changelog/<slug>', async () => {
     const md = await buildMarkdownPage('changelog/v1-0');
-    expect(md).toContain('URL: /changelog/v1-0');
+    expect(md).toMatch(/^# /);
     expect(md).toContain('First public version of these docs');
   });
 
@@ -148,9 +148,7 @@ describe('createMarkdownHandler', () => {
   it('maps /index to the index page (Next aliases /index → /)', async () => {
     const res = await handler(new Request('http://localhost/index.md'), ctx(['index']));
     expect(res.status).toBe(200);
-    const text = await res.text();
-    expect(text).toMatch(/^# /);
-    expect(text).toContain('URL: /');
+    expect(await res.text()).toMatch(/^# /);
   });
 
   it('serves an operation under <apiBase>/operations/<operationId>', async () => {
