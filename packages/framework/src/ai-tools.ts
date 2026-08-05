@@ -11,7 +11,7 @@
  *   `Connect to VS Code`). Different encodings per editor, hence `format`.
  */
 
-export type AiToolId = 'chatgpt' | 'claude' | 'cursor' | 'vscode' | 'perplexity' | 'grok';
+export type AiToolId = 'chatgpt' | 'claude' | 'google' | 'cursor' | 'vscode' | 'perplexity' | 'grok';
 
 interface PromptTool {
   kind: 'prompt';
@@ -43,6 +43,7 @@ export function buildPrompt(pageUrl: string): string {
 export const AI_TOOLS: AiTool[] = [
   { kind: 'prompt', id: 'chatgpt', label: 'Open in ChatGPT', base: 'https://chatgpt.com/', param: 'prompt', extra: { hints: 'search' } },
   { kind: 'prompt', id: 'claude', label: 'Open in Claude', base: 'https://claude.ai/new', param: 'q' },
+  { kind: 'prompt', id: 'google', label: 'Google it', base: 'https://www.google.com/search', param: 'q' },
   { kind: 'mcp', id: 'cursor', label: 'Connect to Cursor', format: 'cursor' },
   { kind: 'mcp', id: 'vscode', label: 'Connect to VS Code', format: 'vscode' },
   { kind: 'prompt', id: 'perplexity', label: 'Open in Perplexity', base: 'https://www.perplexity.ai/search', param: 'q' },
