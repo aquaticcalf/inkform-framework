@@ -974,6 +974,10 @@
   overflow: hidden;
 }
 
+.fw-page-action-menu-col:first-child {
+  padding-right: 0.25rem;
+}
+
 .fw-page-action-menu-col + .fw-page-action-menu-col {
   border-left: 1px solid var(--fw-border);
   padding-left: 0.25rem;
