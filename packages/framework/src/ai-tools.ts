@@ -41,13 +41,13 @@ export function buildPrompt(pageUrl: string): string {
 }
 
 export const AI_TOOLS: AiTool[] = [
-  { kind: 'prompt', id: 'chatgpt', label: 'Open in ChatGPT', base: 'https://chatgpt.com/', param: 'prompt', extra: { hints: 'search' } },
-  { kind: 'prompt', id: 'claude', label: 'Open in Claude', base: 'https://claude.ai/new', param: 'q' },
-  { kind: 'prompt', id: 'google', label: 'Google it', base: 'https://www.google.com/search', param: 'q' },
+  { kind: 'prompt', id: 'chatgpt', label: 'Ask ChatGPT', base: 'https://chatgpt.com/', param: 'prompt', extra: { hints: 'search' } },
+  { kind: 'prompt', id: 'claude', label: 'Ask Claude', base: 'https://claude.ai/new', param: 'q' },
+  { kind: 'prompt', id: 'google', label: 'Ask Google', base: 'https://www.google.com/search', param: 'q' },
   { kind: 'mcp', id: 'cursor', label: 'Connect to Cursor', format: 'cursor' },
   { kind: 'mcp', id: 'vscode', label: 'Connect to VS Code', format: 'vscode' },
-  { kind: 'prompt', id: 'perplexity', label: 'Open in Perplexity', base: 'https://www.perplexity.ai/search', param: 'q' },
-  { kind: 'prompt', id: 'grok', label: 'Open in Grok', base: 'https://grok.com/', param: 'q' },
+  { kind: 'prompt', id: 'perplexity', label: 'Ask Perplexity', base: 'https://www.perplexity.ai/search', param: 'q' },
+  { kind: 'prompt', id: 'grok', label: 'Ask Grok', base: 'https://grok.com/', param: 'q' },
 ];
 
 /** Unicode-safe base64 (btoa() alone only handles Latin1) — guards a siteName with non-ASCII characters. */
