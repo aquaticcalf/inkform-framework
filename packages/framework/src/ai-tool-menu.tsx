@@ -92,14 +92,14 @@ function buildPrompt(pageUrl: string): string {
 }
 
 /** Unicode-safe base64 (btoa() alone only handles Latin1) — guards a siteName with non-ASCII characters. */
-function safeBase64(text: string): string {
+export function safeBase64(text: string): string {
   const bytes = new TextEncoder().encode(text);
   let binary = '';
   for (const b of bytes) binary += String.fromCharCode(b);
   return btoa(binary);
 }
 
-function safeOrigin(url: string): string | undefined {
+export function safeOrigin(url: string): string | undefined {
   try {
     return new URL(url).origin;
   } catch {
@@ -107,7 +107,7 @@ function safeOrigin(url: string): string | undefined {
   }
 }
 
-function chatGptUrl(pageUrl: string): string {
+export function chatGptUrl(pageUrl: string): string {
   // https://chat.openai.com/?hints=search&q=<prompt> — `q` pre-fills (but
   // doesn't auto-submit) the composer. `hints=search` is undocumented but
   // present in Sequoia's real link; left in since it's what was observed
@@ -115,16 +115,16 @@ function chatGptUrl(pageUrl: string): string {
   return `https://chat.openai.com/?hints=search&q=${encodeURIComponent(buildPrompt(pageUrl))}`;
 }
 
-function claudeUrl(pageUrl: string): string {
+export function claudeUrl(pageUrl: string): string {
   // https://claude.ai/new?q=<prompt> — same pre-fill convention as ChatGPT.
   return `https://claude.ai/new?q=${encodeURIComponent(buildPrompt(pageUrl))}`;
 }
 
-function perplexityUrl(pageUrl: string): string {
+export function perplexityUrl(pageUrl: string): string {
   return `https://www.perplexity.ai/search?q=${encodeURIComponent(buildPrompt(pageUrl))}`;
 }
 
-function grokUrl(pageUrl: string): string {
+export function grokUrl(pageUrl: string): string {
   // grok.com's `q` param isn't publicly documented anywhere findable, but it
   // demonstrably pre-fills the composer on Sequoia's real production site
   // (confirmed the same way as chatGptUrl above) — real and working, just
@@ -132,7 +132,7 @@ function grokUrl(pageUrl: string): string {
   return `https://grok.com/?q=${encodeURIComponent(buildPrompt(pageUrl))}`;
 }
 
-function cursorDeeplink(siteName: string, mcpUrl: string): string {
+export function cursorDeeplink(siteName: string, mcpUrl: string): string {
   // Cursor's documented one-click MCP install deep link:
   //   cursor://anysphere.cursor-deeplink/mcp/install?name=<name>&config=<base64 JSON>
   // This deliberately does NOT open the doc page — it registers THIS SITE'S
@@ -145,7 +145,7 @@ function cursorDeeplink(siteName: string, mcpUrl: string): string {
   return `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(siteName)}&config=${config}`;
 }
 
-function vscodeDeeplink(siteName: string, mcpUrl: string): string {
+export function vscodeDeeplink(siteName: string, mcpUrl: string): string {
   // VS Code's documented MCP install URI: vscode:mcp/install?<url-encoded JSON>
   // — note the query segment IS the encoded JSON, not key=value pairs. Same
   // "install this site's MCP server" idea as cursorDeeplink above.

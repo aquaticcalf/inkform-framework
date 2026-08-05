@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Mdx } from '@inkform/framework/mdx';
 import { DocsShell, TocList, Pagination } from '@inkform/framework/docs-shell';
+import { PageActions } from '@inkform/framework/page-actions';
 import { docNeighbours } from '@inkform/framework';
 import { loadDocsConfig, extractHeadings } from '@inkform/framework/content';
 import { siteMdxComponents } from '@/mdx-components';
@@ -57,6 +58,7 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
       toc={headings.length > 0 ? <TocList headings={headings} /> : undefined}
       hideToc={headings.length === 0}
     >
+      <PageActions markdownUrl={ref.slug === '' ? '/index.md' : `/${ref.slug}.md`} />
       <Mdx source={page.content} components={siteMdxComponents} />
       <Pagination
         prev={prev ? { title: prev.title, href: '/' + prev.slug } : null}
