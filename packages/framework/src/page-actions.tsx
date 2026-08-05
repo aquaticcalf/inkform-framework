@@ -269,8 +269,9 @@ export function ViewOptionsPopover({
     }
   }
 
-  function icon(id: string): React.ReactNode {
+  function icon(id: string, isCommand: boolean): React.ReactNode {
     if (icons?.[id]) return icons[id] as React.ReactNode;
+    if (isCommand) return <CopyGlyph />;
     if (id === 'markdown') return <TextGlyph />;
     return <ExternalGlyph />;
   }
@@ -287,7 +288,7 @@ export function ViewOptionsPopover({
           onClick={() => void runAction(row)}
         >
           <span className="fw-page-action-menu-icon" aria-hidden>
-            {copied ? <CheckGlyph /> : icon(row.id)}
+            {copied ? <CheckGlyph /> : icon(row.id, true)}
           </span>
           <span className="fw-page-action-menu-label">{copied ? 'Copied!' : row.label}</span>
         </button>
@@ -303,7 +304,7 @@ export function ViewOptionsPopover({
         className="fw-page-action-menu-item"
       >
         <span className="fw-page-action-menu-icon" aria-hidden>
-          {icon(row.id)}
+          {icon(row.id, false)}
         </span>
         <span className="fw-page-action-menu-label">{row.label}</span>
       </a>

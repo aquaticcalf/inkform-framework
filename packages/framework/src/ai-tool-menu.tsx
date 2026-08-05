@@ -190,8 +190,10 @@ export function AiToolMenu({
     }
   }
 
-  function icon(tool: AiToolId): React.ReactNode {
-    return icons?.[tool] ?? defaultIcon(tool);
+  function icon(tool: AiToolId, isCommand: boolean): React.ReactNode {
+    if (icons?.[tool]) return icons[tool] as React.ReactNode;
+    if (isCommand) return <CopyGlyph />;
+    return defaultIcon(tool);
   }
 
   // Walk the registry (./ai-tools) once per render. Each tool resolves its
@@ -238,7 +240,7 @@ export function AiToolMenu({
                   className="fw-aitoolmenu-link"
                   onClick={() => void copyCommand(l.id, command)}
                 >
-                  <span className="fw-aitoolmenu-icon">{commandCopied === l.id ? <CheckGlyph /> : icon(l.id)}</span>
+                  <span className="fw-aitoolmenu-icon">{commandCopied === l.id ? <CheckGlyph /> : icon(l.id, true)}</span>
                   <span className="fw-aitoolmenu-label">{commandCopied === l.id ? 'Copied!' : l.label}</span>
                 </button>
               </li>
@@ -247,7 +249,7 @@ export function AiToolMenu({
           return (
             <li key={l.id} className="fw-aitoolmenu-item">
               <a className="fw-aitoolmenu-link" href={l.action.href} target="_blank" rel="noopener noreferrer">
-                <span className="fw-aitoolmenu-icon">{icon(l.id)}</span>
+                <span className="fw-aitoolmenu-icon">{icon(l.id, false)}</span>
                 <span className="fw-aitoolmenu-label">{l.label}</span>
               </a>
             </li>
