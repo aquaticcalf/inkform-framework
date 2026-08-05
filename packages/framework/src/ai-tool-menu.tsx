@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AI_TOOLS, buildAiToolHref, buildPrompt, safeOrigin, type AiToolId } from './ai-tools';
+import { AI_TOOLS, buildAiToolAction, buildPrompt, safeOrigin, type AiToolId } from './ai-tools';
 
 /**
  * AiToolMenu — a right-rail list of "hand this page to an AI tool" actions:
@@ -60,9 +60,7 @@ export interface AiToolMenuProps {
   /** Shown to Cursor/VS Code as the installed MCP server's label. Defaults to 'Docs'. */
   siteName?: string;
   /**
-   * Absolute path to the site's own checkout on the reader's machine — used by
-   * opencode's deep link (`directory`), which requires a real path to prefill
-   * the prompt. Per-machine; pass your own docs repo path.
+   * Absolute path to the site's own checkout on the reader's machine — used by opencode's deep link (`directory`). opencode requires a real path to prefill the prompt; without it the app still opens (falls back to `~`). Per-machine; pass your own docs repo path.
    */
   directory?: string;
   /** Section heading, or `null` to omit it (e.g. stacking under a TocList that already renders "On this page"). */
@@ -165,6 +163,7 @@ export function AiToolMenu({
   className,
 }: AiToolMenuProps): React.ReactNode {
   const [copied, setCopied] = React.useState(false);
+  const [commandCopied, setCommandCopied] = React.useState<string | null>(null);
 
   // See the `pageUrl` prop doc above: both the server pass and the first
   // client pass (before the effect below fires) render from the same
@@ -198,14 +197,21 @@ export function AiToolMenu({
   // Walk the registry (./ai-tools) once per render. Each tool resolves its
   // href from a prerequisite: prompt tools need a page URL, MCP tools need a
   // resolved MCP endpoint.
-  const links: { id: AiToolId; label: string; href: string }[] = [];
+  const links: { id: AiToolId; label: string; action: { type: 'link'; href: string } | { type: 'command'; command: string } }[] = [];
   for (const tool of AI_TOOLS) {
-    const href = buildAiToolHref(tool, {
+    const action = buildAiToolAction(tool, {
       pageUrl: resolvedUrl,
       mcpUrl: resolvedMcpUrl ?? undefined,
       siteName,
     });
-    if (href !== null) links.push({ id: tool.id, label: tool.label, href });
+    if (action !== null) links.push({ id: tool.id, label: tool.label, action });
+  }
+
+  async function copyCommand(id: string, command: string) {
+    if (await copyText(command)) {
+      setCommandCopied(id);
+      setTimeout(() => setCommandCopied((current) => (current === id ? null : current)), 1500);
+    }
   }
 
   return (
@@ -222,14 +228,31 @@ export function AiToolMenu({
             <span className="fw-aitoolmenu-label">{copied ? 'Copied!' : 'Copy page'}</span>
           </button>
         </li>
-        {links.map((l) => (
-          <li key={l.id} className="fw-aitoolmenu-item">
-            <a className="fw-aitoolmenu-link" href={l.href} target="_blank" rel="noopener noreferrer">
-              <span className="fw-aitoolmenu-icon">{icon(l.id)}</span>
-              <span className="fw-aitoolmenu-label">{l.label}</span>
-            </a>
-          </li>
-        ))}
+        {links.map((l) => {
+          if (l.action.type === 'command') {
+            const command = l.action.command;
+            return (
+              <li key={l.id} className="fw-aitoolmenu-item">
+                <button
+                  type="button"
+                  className="fw-aitoolmenu-link"
+                  onClick={() => void copyCommand(l.id, command)}
+                >
+                  <span className="fw-aitoolmenu-icon">{commandCopied === l.id ? <CheckGlyph /> : icon(l.id)}</span>
+                  <span className="fw-aitoolmenu-label">{commandCopied === l.id ? 'Copied!' : l.label}</span>
+                </button>
+              </li>
+            );
+          }
+          return (
+            <li key={l.id} className="fw-aitoolmenu-item">
+              <a className="fw-aitoolmenu-link" href={l.action.href} target="_blank" rel="noopener noreferrer">
+                <span className="fw-aitoolmenu-icon">{icon(l.id)}</span>
+                <span className="fw-aitoolmenu-label">{l.label}</span>
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );

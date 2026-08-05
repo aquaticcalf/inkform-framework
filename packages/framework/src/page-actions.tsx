@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AI_TOOLS, buildAiToolHref, safeOrigin } from './ai-tools';
+import { AI_TOOLS, buildAiToolAction, safeOrigin, type AiToolAction } from './ai-tools';
 
 /**
  * Per-page actions: "Copy as Markdown" and an "Open" menu (view the raw
@@ -154,12 +154,6 @@ export interface ViewOptionsPopoverProps {
   mcpUrl?: string | null;
   /** Shown to Cursor/VS Code as the installed MCP server's label. Defaults to 'Docs'. */
   siteName?: string;
-  /**
-   * Absolute path to the site's own checkout on the reader's machine — used by
-   * opencode's deep link (`directory`), which requires a real path to prefill
-   * the prompt. Per-machine; pass your own docs repo path.
-   */
-  directory?: string;
   /** Trigger button label. Defaults to "Open". */
   triggerLabel?: string;
   /**
@@ -202,7 +196,6 @@ export function ViewOptionsPopover({
   githubUrl,
   mcpUrl,
   siteName = 'Docs',
-  directory,
   triggerLabel = 'Open',
   icons,
   className,
@@ -242,29 +235,79 @@ export function ViewOptionsPopover({
   const resolvedMcpUrl = mcpUrl === null ? null : (mcpUrl ?? (liveOrigin ? `${liveOrigin}/api/mcp` : null));
 
   // Two groups: websites (github/markdown + prompt-based AI tools) and local
-  // tools (MCP installs for editors). Split by registry kind so the menu can
-  // lay them out as two columns.
-  const items: { id: string; label: string; href: string }[] = [];
-  const localItems: { id: string; label: string; href: string }[] = [];
-  if (githubUrl) items.push({ id: 'github', label: 'Open in GitHub', href: githubUrl });
-  if (markdownUrl) items.push({ id: 'markdown', label: 'View as Markdown', href: markdownUrl });
+  // tools (MCP installs for editors + copy-a-command CLIs). Split by registry
+  // kind so the menu can lay them out as two columns.
+  interface MenuRow {
+    id: string;
+    label: string;
+    action: { type: 'link'; href: string } | { type: 'command'; command: string };
+  }
+  const items: MenuRow[] = [];
+  const localItems: MenuRow[] = [];
+  if (githubUrl) items.push({ id: 'github', label: 'Open in GitHub', action: { type: 'link', href: githubUrl } });
+  if (markdownUrl) items.push({ id: 'markdown', label: 'View as Markdown', action: { type: 'link', href: markdownUrl } });
   for (const tool of AI_TOOLS) {
-    const href = buildAiToolHref(tool, {
+    const action = buildAiToolAction(tool, {
       pageUrl: resolvedUrl,
       mcpUrl: resolvedMcpUrl ?? undefined,
       siteName,
-      directory,
     });
-    if (href === null) continue;
-    const entry = { id: tool.id, label: tool.label, href };
-    if (tool.kind === 'mcp') localItems.push(entry);
+    if (action === null) continue;
+    const entry: MenuRow = { id: tool.id, label: tool.label, action };
+    if (tool.kind === 'mcp' || tool.kind === 'command') localItems.push(entry);
     else items.push(entry);
+  }
+
+  // Copied-state for command rows; keyed by tool id so only the clicked one flips.
+  const [copiedId, setCopiedId] = React.useState<string | null>(null);
+  async function runAction(row: MenuRow) {
+    if (row.action.type !== 'command') return;
+    const ok = await copyText(row.action.command);
+    if (ok) {
+      setCopiedId(row.id);
+      setTimeout(() => setCopiedId((c) => (c === row.id ? null : c)), 1500);
+    }
   }
 
   function icon(id: string): React.ReactNode {
     if (icons?.[id]) return icons[id] as React.ReactNode;
     if (id === 'markdown') return <TextGlyph />;
     return <ExternalGlyph />;
+  }
+
+  function renderRow(row: MenuRow) {
+    if (row.action.type === 'command') {
+      const copied = copiedId === row.id;
+      return (
+        <button
+          key={row.id}
+          type="button"
+          role="menuitem"
+          className="fw-page-action-menu-item"
+          onClick={() => void runAction(row)}
+        >
+          <span className="fw-page-action-menu-icon" aria-hidden>
+            {copied ? <CheckGlyph /> : icon(row.id)}
+          </span>
+          <span className="fw-page-action-menu-label">{copied ? 'Copied!' : row.label}</span>
+        </button>
+      );
+    }
+    return (
+      <a
+        key={row.id}
+        role="menuitem"
+        href={row.action.href}
+        target="_blank"
+        rel="noreferrer noopener"
+        className="fw-page-action-menu-item"
+      >
+        <span className="fw-page-action-menu-icon" aria-hidden>
+          {icon(row.id)}
+        </span>
+        <span className="fw-page-action-menu-label">{row.label}</span>
+      </a>
+    );
   }
 
   return (
@@ -287,39 +330,11 @@ export function ViewOptionsPopover({
       {open ? (
         <div className="fw-page-action-menu" role="menu" aria-label={triggerLabel}>
           <div className="fw-page-action-menu-col" role="none">
-            {items.map((item) => (
-              <a
-                key={item.id}
-                role="menuitem"
-                href={item.href}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="fw-page-action-menu-item"
-              >
-                <span className="fw-page-action-menu-icon" aria-hidden>
-                  {icon(item.id)}
-                </span>
-                <span className="fw-page-action-menu-label">{item.label}</span>
-              </a>
-            ))}
+            {items.map(renderRow)}
           </div>
           {localItems.length > 0 ? (
             <div className="fw-page-action-menu-col" role="none">
-              {localItems.map((item) => (
-                <a
-                  key={item.id}
-                  role="menuitem"
-                  href={item.href}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="fw-page-action-menu-item"
-                >
-                  <span className="fw-page-action-menu-icon" aria-hidden>
-                    {icon(item.id)}
-                  </span>
-                  <span className="fw-page-action-menu-label">{item.label}</span>
-                </a>
-              ))}
+              {localItems.map(renderRow)}
             </div>
           ) : null}
         </div>
