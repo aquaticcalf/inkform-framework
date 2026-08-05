@@ -108,11 +108,9 @@ export function safeOrigin(url: string): string | undefined {
 }
 
 export function chatGptUrl(pageUrl: string): string {
-  // https://chat.openai.com/?hints=search&q=<prompt> — `q` pre-fills (but
-  // doesn't auto-submit) the composer. `hints=search` is undocumented but
-  // present in Sequoia's real link; left in since it's what was observed
-  // actually shipping, not a guess.
-  return `https://chat.openai.com/?hints=search&q=${encodeURIComponent(buildPrompt(pageUrl))}`;
+  // https://chatgpt.com/?hints=search&prompt=<prompt> — `prompt` pre-fills the
+  // composer; `hints=search` makes it search-style. Uses `prompt` (not `q`).
+  return `https://chatgpt.com/?hints=search&prompt=${encodeURIComponent(buildPrompt(pageUrl))}`;
 }
 
 export function claudeUrl(pageUrl: string): string {
