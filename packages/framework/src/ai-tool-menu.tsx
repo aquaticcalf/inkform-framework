@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { AI_TOOLS, buildAiToolHref, buildPrompt, safeOrigin, type AiToolId } from './ai-tools';
 
 /**
  * AiToolMenu — a right-rail list of "hand this page to an AI tool" actions:
@@ -8,10 +9,8 @@ import * as React from 'react';
  * pre-filled prompt), Connect to Cursor/VS Code (installs THIS SITE'S OWN
  * MCP server — see '@inkform/framework/mcp' — into the reader's editor).
  *
- * Modeled on the right-rail menu at sequoia.mintlify.site (verified by
- * directly inspecting that site's own shipped implementation — intercepting
- * `window.open`/`navigator.clipboard.writeText` calls rather than guessing —
- * see the comment on each URL builder below for what was actually observed).
+ * Tool definitions (labels, URLs, query params) live in ./ai-tools — a data
+ * registry, not per-tool functions.
  * Ties into this framework's existing llms.txt/MCP work: the Cursor/VS Code
  * items are only meaningful because a theme can mount `createMcpHandler()`
  * (./mcp) at a real route in a couple of lines; this component is otherwise
@@ -29,7 +28,8 @@ import * as React from 'react';
    Types
 ───────────────────────────────────────────── */
 
-export type AiToolId = 'copy' | 'chatgpt' | 'claude' | 'cursor' | 'vscode' | 'perplexity' | 'grok';
+export type { AiToolId };
+export { buildPrompt };
 
 export interface AiToolMenuProps {
   /**
@@ -80,77 +80,6 @@ export interface AiToolMenuProps {
 }
 
 /* ─────────────────────────────────────────────
-   Link builders
-
-   Verified 2026-07 against sequoia.mintlify.site's own production build —
-   intercepted `window.open()` there rather than guessing, since its actions
-   are onClick handlers, not plain <a href>. Findings behind each comment.
-───────────────────────────────────────────── */
-
-function buildPrompt(pageUrl: string): string {
-  return `Read ${pageUrl} and help me understand it`;
-}
-
-/** Unicode-safe base64 (btoa() alone only handles Latin1) — guards a siteName with non-ASCII characters. */
-export function safeBase64(text: string): string {
-  const bytes = new TextEncoder().encode(text);
-  let binary = '';
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary);
-}
-
-export function safeOrigin(url: string): string | undefined {
-  try {
-    return new URL(url).origin;
-  } catch {
-    return undefined;
-  }
-}
-
-export function chatGptUrl(pageUrl: string): string {
-  // https://chatgpt.com/?hints=search&prompt=<prompt> — `prompt` pre-fills the
-  // composer; `hints=search` makes it search-style. Uses `prompt` (not `q`).
-  return `https://chatgpt.com/?hints=search&prompt=${encodeURIComponent(buildPrompt(pageUrl))}`;
-}
-
-export function claudeUrl(pageUrl: string): string {
-  // https://claude.ai/new?q=<prompt> — same pre-fill convention as ChatGPT.
-  return `https://claude.ai/new?q=${encodeURIComponent(buildPrompt(pageUrl))}`;
-}
-
-export function perplexityUrl(pageUrl: string): string {
-  return `https://www.perplexity.ai/search?q=${encodeURIComponent(buildPrompt(pageUrl))}`;
-}
-
-export function grokUrl(pageUrl: string): string {
-  // grok.com's `q` param isn't publicly documented anywhere findable, but it
-  // demonstrably pre-fills the composer on Sequoia's real production site
-  // (confirmed the same way as chatGptUrl above) — real and working, just
-  // unofficial, unlike the other three.
-  return `https://grok.com/?q=${encodeURIComponent(buildPrompt(pageUrl))}`;
-}
-
-export function cursorDeeplink(siteName: string, mcpUrl: string): string {
-  // Cursor's documented one-click MCP install deep link:
-  //   cursor://anysphere.cursor-deeplink/mcp/install?name=<name>&config=<base64 JSON>
-  // This deliberately does NOT open the doc page — it registers THIS SITE'S
-  // OWN MCP server (see '@inkform/framework/mcp') in the reader's Cursor, so
-  // they can point Cursor's agent at these docs directly. Chosen over a
-  // guessed `cursor://open?url=...` scheme because this is what Sequoia's
-  // real button actually does (confirmed by decoding its intercepted
-  // window.open call) and it's a materially more useful feature.
-  const config = safeBase64(JSON.stringify({ url: mcpUrl }));
-  return `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(siteName)}&config=${config}`;
-}
-
-export function vscodeDeeplink(siteName: string, mcpUrl: string): string {
-  // VS Code's documented MCP install URI: vscode:mcp/install?<url-encoded JSON>
-  // — note the query segment IS the encoded JSON, not key=value pairs. Same
-  // "install this site's MCP server" idea as cursorDeeplink above.
-  return `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: siteName, url: mcpUrl }))}`;
-}
-
-/* ─────────────────────────────────────────────
    Default icons — dependency-free, brand-neutral (no framework package
    bundles an icon library; see ARCHITECTURE.md §5). A theme can pass real
    per-tool icons via `renderIcon`.
@@ -183,7 +112,7 @@ function ExternalGlyph() {
 }
 
 function defaultIcon(tool: AiToolId): React.ReactNode {
-  return tool === 'copy' ? <CopyGlyph /> : <ExternalGlyph />;
+  return <ExternalGlyph />;
 }
 
 /* ─────────────────────────────────────────────
@@ -259,21 +188,17 @@ export function AiToolMenu({
     return icons?.[tool] ?? defaultIcon(tool);
   }
 
-  // Built once per render instead of hand-repeating six near-identical <li>
-  // blocks — the promptable web tools and the MCP-install tools each gate on
-  // a different prerequisite (a resolved page URL vs. a resolved MCP URL).
+  // Walk the registry (./ai-tools) once per render. Each tool resolves its
+  // href from a prerequisite: prompt tools need a page URL, MCP tools need a
+  // resolved MCP endpoint.
   const links: { id: AiToolId; label: string; href: string }[] = [];
-  if (resolvedUrl) {
-    links.push({ id: 'chatgpt', label: 'Open in ChatGPT', href: chatGptUrl(resolvedUrl) });
-    links.push({ id: 'claude', label: 'Open in Claude', href: claudeUrl(resolvedUrl) });
-  }
-  if (resolvedMcpUrl) {
-    links.push({ id: 'cursor', label: 'Connect to Cursor', href: cursorDeeplink(siteName, resolvedMcpUrl) });
-    links.push({ id: 'vscode', label: 'Connect to VS Code', href: vscodeDeeplink(siteName, resolvedMcpUrl) });
-  }
-  if (resolvedUrl) {
-    links.push({ id: 'perplexity', label: 'Open in Perplexity', href: perplexityUrl(resolvedUrl) });
-    links.push({ id: 'grok', label: 'Open in Grok', href: grokUrl(resolvedUrl) });
+  for (const tool of AI_TOOLS) {
+    const href = buildAiToolHref(tool, {
+      pageUrl: resolvedUrl,
+      mcpUrl: resolvedMcpUrl ?? undefined,
+      siteName,
+    });
+    if (href !== null) links.push({ id: tool.id, label: tool.label, href });
   }
 
   return (
@@ -286,7 +211,7 @@ export function AiToolMenu({
             className={`fw-aitoolmenu-link${copied ? ' fw-aitoolmenu-link--copied' : ''}`}
             onClick={() => void handleCopy()}
           >
-            <span className="fw-aitoolmenu-icon">{copied ? <CheckGlyph /> : icon('copy')}</span>
+            <span className="fw-aitoolmenu-icon">{copied ? <CheckGlyph /> : <CopyGlyph />}</span>
             <span className="fw-aitoolmenu-label">{copied ? 'Copied!' : 'Copy page'}</span>
           </button>
         </li>

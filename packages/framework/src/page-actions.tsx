@@ -1,15 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {
-  chatGptUrl,
-  claudeUrl,
-  cursorDeeplink,
-  grokUrl,
-  perplexityUrl,
-  safeOrigin,
-  vscodeDeeplink,
-} from './ai-tool-menu';
+import { AI_TOOLS, buildAiToolHref, safeOrigin } from './ai-tools';
 
 /**
  * Per-page actions: "Copy as Markdown" and an "Open" menu (view the raw
@@ -245,17 +237,15 @@ export function ViewOptionsPopover({
   const items: { id: string; label: string; href: string }[] = [];
   if (githubUrl) items.push({ id: 'github', label: 'Open in GitHub', href: githubUrl });
   if (markdownUrl) items.push({ id: 'markdown', label: 'View as Markdown', href: markdownUrl });
-  if (resolvedUrl) {
-    items.push({ id: 'chatgpt', label: 'Open in ChatGPT', href: chatGptUrl(resolvedUrl) });
-    items.push({ id: 'claude', label: 'Open in Claude', href: claudeUrl(resolvedUrl) });
-  }
-  if (resolvedMcpUrl) {
-    items.push({ id: 'cursor', label: 'Connect to Cursor', href: cursorDeeplink(siteName, resolvedMcpUrl) });
-    items.push({ id: 'vscode', label: 'Connect to VS Code', href: vscodeDeeplink(siteName, resolvedMcpUrl) });
-  }
-  if (resolvedUrl) {
-    items.push({ id: 'perplexity', label: 'Open in Perplexity', href: perplexityUrl(resolvedUrl) });
-    items.push({ id: 'grok', label: 'Open in Grok', href: grokUrl(resolvedUrl) });
+  // Walk the registry (./ai-tools); prompt tools need a page URL, MCP tools
+  // need a resolved MCP endpoint.
+  for (const tool of AI_TOOLS) {
+    const href = buildAiToolHref(tool, {
+      pageUrl: resolvedUrl,
+      mcpUrl: resolvedMcpUrl ?? undefined,
+      siteName,
+    });
+    if (href !== null) items.push({ id: tool.id, label: tool.label, href });
   }
 
   function icon(id: string): React.ReactNode {
