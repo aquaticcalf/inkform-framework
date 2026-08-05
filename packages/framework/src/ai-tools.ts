@@ -10,7 +10,8 @@
  *   (see '@inkform/framework/mcp') into the reader's editor (`Open in
  *   Cursor`, `Open in VS Code`). Opens as a link.
  * - `command` — a local CLI tool; clicking copies a terminal command the
- *   reader pastes into their own shell (`opencode run "…"`, `claude "…"`).
+ *   reader pastes into their own shell (`opencode run "…"`, `claude "…"`,
+ *   `codex exec "…"`, `agy -p "…"`).
  *   Used where a reliable deep link doesn't exist (opencode's `directory`
  *   requirement, claude-code's `claude-cli://` being stripped on some hosts).
  */
@@ -23,6 +24,8 @@ export type AiToolId =
   | 'vscode'
   | 'opencode'
   | 'claude-code'
+  | 'codex'
+  | 'antigravity'
   | 'perplexity'
   | 'grok';
 
@@ -69,6 +72,8 @@ export const AI_TOOLS: AiTool[] = [
   { kind: 'mcp', id: 'vscode', label: 'Open in VS Code', format: 'vscode' },
   { kind: 'command', id: 'opencode', label: 'OpenCode command', command: 'opencode run "{prompt}"' },
   { kind: 'command', id: 'claude-code', label: 'Claude Code command', command: 'claude "{prompt}"' },
+  { kind: 'command', id: 'codex', label: 'Codex command', command: 'codex exec "{prompt}"' },
+  { kind: 'command', id: 'antigravity', label: 'Antigravity command', command: 'agy -p "{prompt}"' },
   { kind: 'prompt', id: 'perplexity', label: 'Ask Perplexity', base: 'https://www.perplexity.ai/search', param: 'q' },
   { kind: 'prompt', id: 'grok', label: 'Ask Grok', base: 'https://grok.com/', param: 'q' },
 ];
