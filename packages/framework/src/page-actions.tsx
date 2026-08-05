@@ -315,6 +315,12 @@ export interface PageActionsProps extends ViewOptionsPopoverProps {
   copyLabel?: string;
   /** Pre-rendered copy icon. */
   copyIcon?: React.ReactNode;
+  /**
+   * Page title, rendered as the H1 above the buttons. The page's own MDX
+   * normally carries the `# H1` — pass the title here AND strip the leading
+   * H1 from the MDX source to avoid a duplicate.
+   */
+  title?: string;
 }
 
 /**
@@ -322,17 +328,21 @@ export interface PageActionsProps extends ViewOptionsPopoverProps {
  *
  * ```tsx
  * <PageActions
+ *   title={ref.title}
  *   markdownUrl={`/${ref.slug}.md`}
  *   githubUrl={`https://github.com/${owner}/${repo}/blob/main/content/docs/${ref.file}`}
  * />
  * ```
  */
 export function PageActions(props: PageActionsProps) {
-  const { markdownUrl, copyLabel, copyIcon, className, ...popoverProps } = props;
+  const { title, markdownUrl, copyLabel, copyIcon, className, ...popoverProps } = props;
   return (
     <div className={`fw-page-actions${className ? ` ${className}` : ''}`}>
-      <MarkdownCopyButton markdownUrl={markdownUrl} label={copyLabel} icon={copyIcon} />
-      <ViewOptionsPopover markdownUrl={markdownUrl} {...popoverProps} />
+      {title ? <h1 className="fw-page-title">{title}</h1> : null}
+      <div className="fw-page-action-row">
+        <MarkdownCopyButton markdownUrl={markdownUrl} label={copyLabel} icon={copyIcon} />
+        <ViewOptionsPopover markdownUrl={markdownUrl} {...popoverProps} />
+      </div>
     </div>
   );
 }

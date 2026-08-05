@@ -75,7 +75,7 @@ import { mdxToMarkdown } from 'mdast-util-mdx';
 import { mdxJsxToMarkdown } from 'mdast-util-mdx-jsx';
 import { visit } from 'unist-util-visit';
 import type { Node, Root } from 'mdast';
-import { loadBlogPost, loadChangelogEntries, loadDocPage, loadDocsConfig } from './content';
+import { loadBlogPost, loadChangelogEntries, loadDocPage, loadDocsConfig, stripLeadingH1 } from './content';
 import { findDocPage } from './nav';
 import { loadApiDocument } from './mcp/tools';
 import { renderOperationMarkdown } from './openapi-engine/markdown';
@@ -225,15 +225,10 @@ export interface BuildMarkdownPageOptions {
   apiBasePath?: string;
 }
 
-/** Strip a leading `# H1` from the body — composePage already emits the title. */
-function stripLeadingH1(content: string): string {
-  return content.replace(/^#\s+.+\n+/, '').trim();
-}
-
 function composePage(title: string, description: string | null, content: string): string {
   const parts = [`# ${title}`];
   if (description) parts.push('', description);
-  parts.push('', stripLeadingH1(content));
+  parts.push('', stripLeadingH1(content).trim());
   return parts.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
 }
 
