@@ -154,6 +154,12 @@ export interface ViewOptionsPopoverProps {
   mcpUrl?: string | null;
   /** Shown to Cursor/VS Code as the installed MCP server's label. Defaults to 'Docs'. */
   siteName?: string;
+  /**
+   * Absolute path to the site's own checkout on the reader's machine — used by
+   * opencode's deep link (`directory`), which requires a real path to prefill
+   * the prompt. Per-machine; pass your own docs repo path.
+   */
+  directory?: string;
   /** Trigger button label. Defaults to "Open". */
   triggerLabel?: string;
   /**
@@ -196,6 +202,7 @@ export function ViewOptionsPopover({
   githubUrl,
   mcpUrl,
   siteName = 'Docs',
+  directory,
   triggerLabel = 'Open',
   icons,
   className,
@@ -234,18 +241,24 @@ export function ViewOptionsPopover({
   const resolvedUrl = liveUrl ?? '';
   const resolvedMcpUrl = mcpUrl === null ? null : (mcpUrl ?? (liveOrigin ? `${liveOrigin}/api/mcp` : null));
 
+  // Two groups: websites (github/markdown + prompt-based AI tools) and local
+  // tools (MCP installs for editors). Split by registry kind so the menu can
+  // lay them out as two columns.
   const items: { id: string; label: string; href: string }[] = [];
+  const localItems: { id: string; label: string; href: string }[] = [];
   if (githubUrl) items.push({ id: 'github', label: 'Open in GitHub', href: githubUrl });
   if (markdownUrl) items.push({ id: 'markdown', label: 'View as Markdown', href: markdownUrl });
-  // Walk the registry (./ai-tools); prompt tools need a page URL, MCP tools
-  // need a resolved MCP endpoint.
   for (const tool of AI_TOOLS) {
     const href = buildAiToolHref(tool, {
       pageUrl: resolvedUrl,
       mcpUrl: resolvedMcpUrl ?? undefined,
       siteName,
+      directory,
     });
-    if (href !== null) items.push({ id: tool.id, label: tool.label, href });
+    if (href === null) continue;
+    const entry = { id: tool.id, label: tool.label, href };
+    if (tool.kind === 'mcp') localItems.push(entry);
+    else items.push(entry);
   }
 
   function icon(id: string): React.ReactNode {
@@ -273,21 +286,42 @@ export function ViewOptionsPopover({
 
       {open ? (
         <div className="fw-page-action-menu" role="menu" aria-label={triggerLabel}>
-          {items.map((item) => (
-            <a
-              key={item.id}
-              role="menuitem"
-              href={item.href}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="fw-page-action-menu-item"
-            >
-              <span className="fw-page-action-menu-icon" aria-hidden>
-                {icon(item.id)}
-              </span>
-              <span className="fw-page-action-menu-label">{item.label}</span>
-            </a>
-          ))}
+          <div className="fw-page-action-menu-col" role="none">
+            {items.map((item) => (
+              <a
+                key={item.id}
+                role="menuitem"
+                href={item.href}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="fw-page-action-menu-item"
+              >
+                <span className="fw-page-action-menu-icon" aria-hidden>
+                  {icon(item.id)}
+                </span>
+                <span className="fw-page-action-menu-label">{item.label}</span>
+              </a>
+            ))}
+          </div>
+          {localItems.length > 0 ? (
+            <div className="fw-page-action-menu-col" role="none">
+              {localItems.map((item) => (
+                <a
+                  key={item.id}
+                  role="menuitem"
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="fw-page-action-menu-item"
+                >
+                  <span className="fw-page-action-menu-icon" aria-hidden>
+                    {icon(item.id)}
+                  </span>
+                  <span className="fw-page-action-menu-label">{item.label}</span>
+                </a>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

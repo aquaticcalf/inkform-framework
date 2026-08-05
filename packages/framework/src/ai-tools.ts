@@ -5,13 +5,14 @@
  *
  * Two kinds:
  * - `prompt` — a web tool that takes the page URL and pre-fills a prompt in a
- *   query param (`Open in ChatGPT`, `Open in Claude`, ...).
- * - `mcp` — an editor deeplink that installs THIS SITE'S OWN MCP server (see
- *   '@inkform/framework/mcp') into the reader's editor (`Connect to Cursor`,
- *   `Connect to VS Code`). Different encodings per editor, hence `format`.
+ *   query param (`Ask ChatGPT`, `Ask Claude`, ...).
+ * - `mcp` — a local editor/app deeplink. Most install THIS SITE'S OWN MCP
+ *   server (see '@inkform/framework/mcp') into the reader's editor (`Open in
+ *   Cursor`, `Open in VS Code`); opencode instead opens a new session with a
+ *   pre-filled prompt. Different encodings per editor, hence `format`.
  */
 
-export type AiToolId = 'chatgpt' | 'claude' | 'google' | 'cursor' | 'vscode' | 'perplexity' | 'grok';
+export type AiToolId = 'chatgpt' | 'claude' | 'google' | 'cursor' | 'vscode' | 'opencode' | 'perplexity' | 'grok';
 
 interface PromptTool {
   kind: 'prompt';
@@ -29,8 +30,8 @@ interface McpTool {
   kind: 'mcp';
   id: AiToolId;
   label: string;
-  /** How to encode the MCP install deeplink. */
-  format: 'cursor' | 'vscode';
+  /** How to encode the local-app deeplink. */
+  format: 'cursor' | 'vscode' | 'opencode';
 }
 
 export type AiTool = PromptTool | McpTool;
@@ -44,8 +45,9 @@ export const AI_TOOLS: AiTool[] = [
   { kind: 'prompt', id: 'chatgpt', label: 'Ask ChatGPT', base: 'https://chatgpt.com/', param: 'prompt', extra: { hints: 'search' } },
   { kind: 'prompt', id: 'claude', label: 'Ask Claude', base: 'https://claude.ai/new', param: 'q' },
   { kind: 'prompt', id: 'google', label: 'Ask Google', base: 'https://www.google.com/search', param: 'q' },
-  { kind: 'mcp', id: 'cursor', label: 'Connect to Cursor', format: 'cursor' },
-  { kind: 'mcp', id: 'vscode', label: 'Connect to VS Code', format: 'vscode' },
+  { kind: 'mcp', id: 'cursor', label: 'Open in Cursor', format: 'cursor' },
+  { kind: 'mcp', id: 'vscode', label: 'Open in VS Code', format: 'vscode' },
+  { kind: 'mcp', id: 'opencode', label: 'Open in OpenCode', format: 'opencode' },
   { kind: 'prompt', id: 'perplexity', label: 'Ask Perplexity', base: 'https://www.perplexity.ai/search', param: 'q' },
   { kind: 'prompt', id: 'grok', label: 'Ask Grok', base: 'https://grok.com/', param: 'q' },
 ];
@@ -66,30 +68,60 @@ export function safeOrigin(url: string): string | undefined {
   }
 }
 
-function mcpInstallHref(format: McpTool['format'], siteName: string, mcpUrl: string): string {
+function mcpInstallHref(
+  format: McpTool['format'],
+  siteName: string,
+  mcpUrl: string,
+  prompt?: string,
+  directory?: string,
+): string {
   if (format === 'cursor') {
     // Cursor's documented one-click MCP install deep link:
     //   cursor://anysphere.cursor-deeplink/mcp/install?name=<name>&config=<base64 JSON>
     const config = safeBase64(JSON.stringify({ url: mcpUrl }));
     return `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(siteName)}&config=${config}`;
   }
-  // VS Code's documented MCP install URI: vscode:mcp/install?<url-encoded JSON>
-  // — note the query segment IS the encoded JSON, not key=value pairs.
-  return `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: siteName, url: mcpUrl }))}`;
+  if (format === 'vscode') {
+    // VS Code's documented MCP install URI: vscode:mcp/install?<url-encoded JSON>
+    // — note the query segment IS the encoded JSON, not key=value pairs.
+    return `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: siteName, url: mcpUrl }))}`;
+  }
+  // opencode Desktop (verified by reading its shipped app.asar): a new session
+  // with a pre-filled prompt. The `directory` param is required by the app's
+  // parser AND must resolve to a real project — the session page reads the
+  // prompt from a handoff store keyed by that directory, so a fake path opens
+  // the app but the prompt never lands. Pass the site's own checkout path.
+  return `opencode://new-session?directory=${encodeURIComponent(directory ?? '')}&prompt=${encodeURIComponent(prompt ?? '')}`;
 }
 
 export interface BuildAiToolHrefOptions {
-  /** Page URL — required for `prompt` tools. */
+  /** Page URL — required for `prompt` tools (and opencode's prompt). */
   pageUrl?: string;
-  /** MCP endpoint — required for `mcp` tools. */
+  /** MCP endpoint — required for the Cursor/VS Code MCP install links. */
   mcpUrl?: string;
   /** Shown to Cursor/VS Code as the installed MCP server's label. Defaults to 'Docs'. */
   siteName?: string;
+  /**
+   * Absolute path to the site's own checkout on the reader's machine — used by
+   * opencode's deep link (`directory`). opencode requires a real directory to
+   * prefill the prompt, so this is a per-machine value the site configures.
+   */
+  directory?: string;
 }
 
 /** Build one tool's href from the registry. Returns null when a prerequisite is missing. */
 export function buildAiToolHref(tool: AiTool, options: BuildAiToolHrefOptions): string | null {
   if (tool.kind === 'mcp') {
+    if (tool.format === 'opencode') {
+      if (!options.pageUrl || !options.directory) return null;
+      return mcpInstallHref(
+        tool.format,
+        options.siteName ?? 'Docs',
+        '',
+        buildPrompt(options.pageUrl),
+        options.directory,
+      );
+    }
     if (!options.mcpUrl) return null;
     return mcpInstallHref(tool.format, options.siteName ?? 'Docs', options.mcpUrl);
   }

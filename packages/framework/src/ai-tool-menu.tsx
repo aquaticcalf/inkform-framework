@@ -59,6 +59,12 @@ export interface AiToolMenuProps {
   mcpUrl?: string | null;
   /** Shown to Cursor/VS Code as the installed MCP server's label. Defaults to 'Docs'. */
   siteName?: string;
+  /**
+   * Absolute path to the site's own checkout on the reader's machine — used by
+   * opencode's deep link (`directory`), which requires a real path to prefill
+   * the prompt. Per-machine; pass your own docs repo path.
+   */
+  directory?: string;
   /** Section heading, or `null` to omit it (e.g. stacking under a TocList that already renders "On this page"). */
   title?: string | null;
   /**
@@ -153,6 +159,7 @@ export function AiToolMenu({
   pageUrl,
   mcpUrl,
   siteName = 'Docs',
+  directory,
   title = 'Ask AI',
   icons,
   className,
