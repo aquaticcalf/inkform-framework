@@ -626,6 +626,7 @@
 }
 
 .fw-aitoolmenu-icon {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -668,6 +669,49 @@
 @media (prefers-reduced-motion: reduce) {
   .fw-aitoolmenu-link:hover .fw-aitoolmenu-icon {
     animation: none;
+  }
+}
+
+/* Tiny confetti burst, mounted inside an icon span when a copy action
+   succeeds (see ./confetti.tsx). Each piece launches outward from the icon's
+   center and fades, driven by per-piece custom properties. */
+.fw-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fw-confetti-piece {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--size);
+  height: var(--size);
+  background: var(--color);
+  border-radius: 1px;
+  opacity: 0;
+  animation: fw-confetti-burst 1.2s cubic-bezier(0.22, 1, 0.36, 1) var(--delay) forwards;
+}
+
+@keyframes fw-confetti-burst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) rotate(var(--rot)) scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx) * 1.25), calc(-50% + var(--ty) + 30px)) rotate(calc(var(--rot) * 1.8)) scale(0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-confetti-piece {
+    animation: none;
+    opacity: 0;
   }
 }
 

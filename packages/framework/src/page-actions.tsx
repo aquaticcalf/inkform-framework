@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { AI_TOOLS, buildAiToolAction, safeOrigin, type AiToolAction } from './ai-tools';
 import { defaultAiToolIcons } from './ai-tool-icons';
+import { Confetti } from './confetti';
 
 /**
  * Per-page actions: "Copy as Markdown" and an "Open" menu (view the raw
@@ -120,7 +121,7 @@ export function MarkdownCopyButton({
   return (
     <button
       type="button"
-      className={`fw-page-action${className ? ` ${className}` : ''}${copied ? ' fw-page-action--copied' : ''}`}
+      className={`fw-page-action${className ? ` ${className}` : ''}`}
       onClick={() => void handleCopy()}
       disabled={loading}
       aria-label={copied ? 'Copied' : label}
@@ -128,8 +129,12 @@ export function MarkdownCopyButton({
     >
       <span className="fw-page-action-icon" aria-hidden>
         {copied ? <CheckGlyph /> : (icon ?? <CopyGlyph />)}
+        {copied ? <Confetti /> : null}
       </span>
-      <span className="fw-page-action-label">{copied ? 'Copied!' : label}</span>
+      <span className="fw-page-action-label">
+        <span className="fw-page-action-label-reserve" aria-hidden="true">Copied Markdown</span>
+        <span className="fw-page-action-label-active">{copied ? 'Copied Markdown' : label}</span>
+      </span>
     </button>
   );
 }
@@ -292,8 +297,9 @@ export function ViewOptionsPopover({
         >
           <span className="fw-page-action-menu-icon" aria-hidden>
             {copied ? <CheckGlyph /> : icon(row.id, true)}
+            {copied ? <Confetti /> : null}
           </span>
-          <span className="fw-page-action-menu-label">{copied ? 'Copied!' : row.label}</span>
+          <span className="fw-page-action-menu-label">{copied ? 'Copied command' : row.label}</span>
         </button>
       );
     }

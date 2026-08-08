@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { AI_TOOLS, buildAiToolAction, buildPrompt, safeOrigin, type AiToolId } from './ai-tools';
 import { defaultAiToolIcons } from './ai-tool-icons';
+import { Confetti } from './confetti';
 
 /**
  * AiToolMenu — a right-rail list of "hand this page to an AI tool" actions:
@@ -230,7 +231,7 @@ export function AiToolMenu({
             className={`fw-aitoolmenu-link${copied ? ' fw-aitoolmenu-link--copied' : ''}`}
             onClick={() => void handleCopy()}
           >
-            <span className="fw-aitoolmenu-icon">{copied ? <CheckGlyph /> : <CopyGlyph />}</span>
+            <span className="fw-aitoolmenu-icon">{copied ? <CheckGlyph /> : <CopyGlyph />}{copied ? <Confetti /> : null}</span>
             <span className="fw-aitoolmenu-label">{copied ? 'Copied!' : 'Copy page'}</span>
           </button>
         </li>
@@ -244,8 +245,8 @@ export function AiToolMenu({
                   className="fw-aitoolmenu-link"
                   onClick={() => void copyCommand(l.id, command)}
                 >
-                  <span className="fw-aitoolmenu-icon">{commandCopied === l.id ? <CheckGlyph /> : icon(l.id, true)}</span>
-                  <span className="fw-aitoolmenu-label">{commandCopied === l.id ? 'Copied!' : l.label}</span>
+                  <span className="fw-aitoolmenu-icon">{commandCopied === l.id ? <CheckGlyph /> : icon(l.id, true)}{commandCopied === l.id ? <Confetti /> : null}</span>
+                  <span className="fw-aitoolmenu-label">{commandCopied === l.id ? 'Copied command' : l.label}</span>
                 </button>
               </li>
             );
