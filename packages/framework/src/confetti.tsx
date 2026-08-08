@@ -6,16 +6,13 @@ import * as React from 'react';
  * outward from the icon and fade, driven by per-piece CSS custom properties.
  * Falls back to invisible under `prefers-reduced-motion` (see layout.css).
  *
+ * Piece colors are the `--fw-confetti-*` tokens declared on `.fw-confetti`
+ * in layout.css, so a theme can restyle them without touching this file.
+ *
  * Parent must be `position: relative` (the icon spans already are, e.g.
  * .fw-aitoolmenu-icon / .fw-page-action-menu-icon).
  */
-const CONFETTI_COLORS = [
-  'var(--fw-primary)',
-  '#f59e0b',
-  '#ec4899',
-  '#22c55e',
-  '#3b82f6',
-];
+const CONFETTI_COLORS = ['var(--fw-confetti-1)', 'var(--fw-confetti-2)', 'var(--fw-confetti-3)', 'var(--fw-confetti-4)', 'var(--fw-confetti-5)'];
 
 export function Confetti() {
   return (

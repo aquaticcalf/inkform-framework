@@ -851,11 +851,11 @@
   user-select: none;
 }
 
-/* ---------------------------------------------------------------
+/* ─────────────────────────────────────────────
    PAGE ACTIONS -- "Copy as Markdown" + "Open" menu
    (src/page-actions.tsx). Small secondary buttons in a row; the Open
    menu is an absolutely-positioned card anchored to its trigger.
---------------------------------------------------------------- */
+───────────────────────────────────────────── */
 
 .fw-page-actions {
   display: flex;

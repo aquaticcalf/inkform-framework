@@ -674,8 +674,14 @@
 
 /* Tiny confetti burst, mounted inside an icon span when a copy action
    succeeds (see ./confetti.tsx). Each piece launches outward from the icon's
-   center and fades, driven by per-piece custom properties. */
+   center and fades, driven by per-piece custom properties. Piece colors are
+   local tokens here so themes can restyle them via --fw-confetti-* overrides. */
 .fw-confetti {
+  --fw-confetti-1: var(--fw-primary);
+  --fw-confetti-2: #f59e0b;
+  --fw-confetti-3: #ec4899;
+  --fw-confetti-4: #22c55e;
+  --fw-confetti-5: #3b82f6;
   position: absolute;
   inset: 0;
   pointer-events: none;
