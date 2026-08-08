@@ -62,14 +62,10 @@ export interface AiToolMenuProps {
   mcpUrl?: string | null;
   /** Shown to Cursor/VS Code as the installed MCP server's label. Defaults to 'Docs'. */
   siteName?: string;
-  /**
-   * Absolute path to the site's own checkout on the reader's machine — used by opencode's deep link (`directory`). opencode requires a real path to prefill the prompt; without it the app still opens (falls back to `~`). Per-machine; pass your own docs repo path.
-   */
-  directory?: string;
   /** Section heading, or `null` to omit it (e.g. stacking under a TocList that already renders "On this page"). */
   title?: string | null;
   /**
-   * Pre-rendered icon per tool (e.g. Lucide elements), keyed by `AiToolId`.
+   * Pre-rendered icon per tool (e.g. icon-library elements), keyed by `AiToolId`.
    * A plain ReactNode map rather than a `renderIcon` callback — this
    * component is a Client Component, and a live function prop can't cross
    * the Server → Client Component boundary from a page.tsx that builds this
@@ -119,10 +115,6 @@ function ExternalGlyph() {
   );
 }
 
-function defaultIcon(tool: AiToolId): React.ReactNode {
-  return <ExternalGlyph />;
-}
-
 /* ─────────────────────────────────────────────
    Copy-to-clipboard, with a fallback for contexts without the async
    Clipboard API (e.g. non-HTTPS dev over a LAN IP).
@@ -161,7 +153,6 @@ export function AiToolMenu({
   pageUrl,
   mcpUrl,
   siteName = 'Docs',
-  directory,
   title = 'Ask AI',
   icons,
   className,
@@ -198,7 +189,7 @@ export function AiToolMenu({
     if (icons?.[tool]) return icons[tool] as React.ReactNode;
     if (defaultAiToolIcons[tool]) return defaultAiToolIcons[tool] as React.ReactNode;
     if (isCommand) return <CopyGlyph />;
-    return defaultIcon(tool);
+    return <ExternalGlyph />;
   }
 
   // Walk the registry (./ai-tools) once per render. Each tool resolves its

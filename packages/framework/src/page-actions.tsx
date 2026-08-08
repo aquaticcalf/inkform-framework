@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AI_TOOLS, buildAiToolAction, safeOrigin, type AiToolAction } from './ai-tools';
+import { AI_TOOLS, buildAiToolAction, safeOrigin, type AiToolAction, type AiToolId } from './ai-tools';
 import { defaultAiToolIcons } from './ai-tool-icons';
 import { Confetti } from './confetti';
 
@@ -26,8 +26,16 @@ import { Confetti } from './confetti';
 
 // Cache the fetched Markdown per URL so copying the same page twice doesn't
 // refetch. Keyed by the URL string; a module-level map like SearchDialog's
-// pagefindPromise.
+// pagefindPromise. Only successful responses are cached — a failure leaves
+// the key unset so a later copy can retry.
 const markdownCache = new Map<string, Promise<string>>();
+
+function fetchMarkdown(url: string): Promise<string> {
+  return fetch(url).then(async (res) => {
+    if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+    return res.text();
+  });
+}
 
 export interface MarkdownCopyButtonProps {
   /**
@@ -103,8 +111,13 @@ export function MarkdownCopyButton({
     try {
       let promise = markdownCache.get(markdownUrl);
       if (!promise) {
-        promise = fetch(markdownUrl).then((res) => res.text());
+        promise = fetchMarkdown(markdownUrl);
         markdownCache.set(markdownUrl, promise);
+        // Keep failures out of the cache so a later click retries the fetch
+        // instead of permanently re-copying the stale rejected promise.
+        promise.catch(() => {
+          markdownCache.delete(markdownUrl);
+        });
       }
       const ok = await copyText(await promise);
       if (ok) {
@@ -164,10 +177,12 @@ export interface ViewOptionsPopoverProps {
   /** Trigger button label. Defaults to "Open". */
   triggerLabel?: string;
   /**
-   * Pre-rendered icon per tool (e.g. Lucide elements), keyed by tool id.
-   * Mirrors AiToolMenu's `icons` prop; falls back to built-in glyphs.
+   * Pre-rendered icon per AI tool (e.g. icon-library elements), keyed by `AiToolId`.
+   * Mirrors AiToolMenu's `icons` prop; falls back to built-in brand marks.
+   * The non-AI rows ("View as Markdown", "Open in GitHub") always use their
+   * built-in glyphs.
    */
-  icons?: Partial<Record<string, React.ReactNode>>;
+  icons?: Partial<Record<AiToolId, React.ReactNode>>;
   /** Extra class name on the wrapper. */
   className?: string;
 }
@@ -277,8 +292,9 @@ export function ViewOptionsPopover({
   }
 
   function icon(id: string, isCommand: boolean): React.ReactNode {
-    if (icons?.[id]) return icons[id] as React.ReactNode;
-    if (defaultAiToolIcons[id as keyof typeof defaultAiToolIcons]) return defaultAiToolIcons[id as keyof typeof defaultAiToolIcons] as React.ReactNode;
+    const key = id as AiToolId;
+    if (icons?.[key]) return icons[key] as React.ReactNode;
+    if (defaultAiToolIcons[key]) return defaultAiToolIcons[key] as React.ReactNode;
     if (isCommand) return <CopyGlyph />;
     if (id === 'markdown') return <TextGlyph />;
     return <ExternalGlyph />;

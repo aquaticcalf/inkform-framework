@@ -41,27 +41,10 @@
  *    by the `.md` request itself, so no URL is echoed in the body.
  *
  * 3. `createMarkdownHandler()` — a Next.js route-handler factory (mirrors
- *    `createMcpHandler`). Mount it at `app/markdown/[[...slug]]/route.ts`:
- *
- *    ```ts
- *    // app/markdown/[[...slug]]/route.ts
- *    import { createMarkdownHandler } from '@inkform/framework/markdown';
- *    import { apiBasePath, loadDocsConfig } from '@/lib/route';
- *
- *    export const runtime = 'nodejs';
- *    export const GET = createMarkdownHandler({
- *      apiBasePath: (() => {
- *        const config = loadDocsConfig();
- *        return config && apiBasePath(config) ? apiBasePath(config) : undefined;
- *      })(),
- *    });
- *    ```
- *
- *    The handler reads the slug from Next's `[[...slug]]` params — the same
- *    resolution the docs page uses. The app's `proxy.ts` rewrites any
- *    `/<slug>.md` URL onto this route (public URL unchanged), so
- *    `/quickstart.md` and `/index.md` map to the same pages as `/quickstart`
- *    and `/`. Unknown pages return 404.
+ *    `createMcpHandler`). Mount it at `app/markdown/[[...slug]]/route.ts` and
+ *    have the app's `proxy.ts` rewrite `/<slug>.md` URLs onto it (see the
+ *    function's own docstring for the mount snippet). Unknown pages return
+ *    a plain 404.
  */
 
 import { unified } from 'unified';
@@ -147,13 +130,10 @@ function remarkPlainMarkdown() {
         }
         case 'leafDirective':
         case 'textDirective': {
-          const children = n.children;
-          // Replace the directive node with its children (or drop it entirely).
-          (parent.children as unknown[]) = [
-            ...(parent.children as unknown[]).slice(0, index),
-            ...(children ?? []),
-            ...(parent.children as unknown[]).slice(index + 1),
-          ];
+          const children = (n.children ?? []) as Node[];
+          // Replace the directive node with its children (or drop it). Spliced
+          // in place so `visit`'s index stays valid for the remaining siblings.
+          (parent.children as Node[]).splice(index, 1, ...children);
           return;
         }
       }
@@ -296,24 +276,23 @@ export interface CreateMarkdownHandlerOptions extends BuildMarkdownPageOptions {
  * than parsing the URL, so the markdown endpoint and the docs page agree on
  * which "file" a path resolves to.
  *
+ * Mount it at `app/markdown/[[...slug]]/route.ts`:
+ *
  * ```ts
- * // app/[[...slug]].md/route.ts
  * import { createMarkdownHandler } from '@inkform/framework/markdown';
  * import { apiBasePath, loadDocsConfig } from '@/lib/route';
  *
  * export const runtime = 'nodejs';
- * export const GET = createMarkdownHandler({
- *   apiBasePath: (() => {
- *     const config = loadDocsConfig();
- *     return config && apiBasePath(config) ? apiBasePath(config) : undefined;
- *   })(),
- * });
+ *
+ * const config = loadDocsConfig();
+ * const apiBase = config && apiBasePath(config);
+ * export const GET = createMarkdownHandler({ apiBasePath: apiBase ?? undefined });
  * ```
  *
- * Mounted at `app/[[...slug]].md/route.ts`, the URL is `/quickstart.md`,
- * `/index.md`, `/concepts/pagination.md`, etc. — the page's own URL with a
- * `.md` extension, resolved through the same `[[...slug]]` params the docs
- * page uses. Unknown pages return a plain 404.
+ * The app's `proxy.ts` rewrites any `/<slug>.md` URL onto this route (the
+ * public URL keeps its `.md` suffix), so `/quickstart.md`, `/index.md`, and
+ * `/concepts/pagination.md` map to the same pages as `/quickstart`, `/`, and
+ * `/concepts/pagination`. Unknown pages return a plain 404.
  */
 export function createMarkdownHandler(options: CreateMarkdownHandlerOptions = {}) {
   return async (

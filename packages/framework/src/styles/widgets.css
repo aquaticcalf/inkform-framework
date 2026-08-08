@@ -851,7 +851,6 @@
   user-select: none;
 }
 
-
 /* ---------------------------------------------------------------
    PAGE ACTIONS -- "Copy as Markdown" + "Open" menu
    (src/page-actions.tsx). Small secondary buttons in a row; the Open
@@ -912,11 +911,6 @@
   cursor: default;
 }
 
-.fw-page-action--copied,
-.fw-page-action--copied .fw-page-action-icon {
-  color: var(--fw-primary);
-}
-
 .fw-page-action-icon {
   position: relative;
   display: inline-flex;
@@ -933,9 +927,10 @@
   white-space: nowrap;
 }
 
-/* The reserve span always occupies the original label's width (visibility
-   hidden) so the button never resizes when the label flips to "Copied!" —
-   no layout shift. The active label overlays it, left-aligned after the icon. */
+/* The reserve span always occupies the longest label's width (visibility
+   hidden) so the button never resizes when the label flips to
+   "Copied Markdown" — no layout shift. The active label overlays it,
+   centered within that reserved width. */
 .fw-page-action-label-reserve {
   visibility: hidden;
 }

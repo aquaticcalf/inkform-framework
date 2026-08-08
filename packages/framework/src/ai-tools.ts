@@ -12,8 +12,8 @@
  * - `command` — a local CLI tool; clicking copies a terminal command the
  *   reader pastes into their own shell (`opencode run "…"`, `claude "…"`,
  *   `codex exec "…"`, `agy -p "…"`).
- *   Used where a reliable deep link doesn't exist (opencode's `directory`
- *   requirement, claude-code's `claude-cli://` being stripped on some hosts).
+ *   Used where a reliable deep link doesn't exist (e.g. claude-code's
+ *   `claude-cli://` being stripped on some hosts).
  */
 
 export type AiToolId =
@@ -79,7 +79,7 @@ export const AI_TOOLS: AiTool[] = [
 ];
 
 /** Unicode-safe base64 (btoa() alone only handles Latin1) — guards a siteName with non-ASCII characters. */
-export function safeBase64(text: string): string {
+function safeBase64(text: string): string {
   const bytes = new TextEncoder().encode(text);
   let binary = '';
   for (const b of bytes) binary += String.fromCharCode(b);
@@ -148,8 +148,4 @@ export function buildAiToolAction(tool: AiTool, options: BuildAiToolHrefOptions)
     url.searchParams.set(key, value);
   }
   return { type: 'link', href: url.toString() };
-}
-
-export function aiTool(id: AiToolId): AiTool | undefined {
-  return AI_TOOLS.find((t) => t.id === id);
 }
