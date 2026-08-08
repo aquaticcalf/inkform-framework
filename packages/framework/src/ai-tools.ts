@@ -98,12 +98,17 @@ function mcpInstallHref(format: McpTool['format'], siteName: string, mcpUrl: str
   if (format === 'cursor') {
     // Cursor's documented one-click MCP install deep link:
     //   cursor://anysphere.cursor-deeplink/mcp/install?name=<name>&config=<base64 JSON>
+    // The config is the mcp.json transport entry for a remote server — just
+    // { url } (Cursor infers the HTTP transport from the `url` field).
     const config = safeBase64(JSON.stringify({ url: mcpUrl }));
     return `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(siteName)}&config=${config}`;
   }
   // VS Code's documented MCP install URI: vscode:mcp/install?<url-encoded JSON>
-  // — note the query segment IS the encoded JSON, not key=value pairs.
-  return `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: siteName, url: mcpUrl }))}`;
+  // — note the query segment IS the encoded JSON, not key=value pairs. The
+  // JSON is the mcp.json server entry, so a URL server needs `"type":"http"`
+  // (VS Code requires the transport type; without it the entry falls back to
+  // stdio and the `url` field is invalid).
+  return `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: siteName, type: 'http', url: mcpUrl }))}`;
 }
 
 export interface BuildAiToolHrefOptions {

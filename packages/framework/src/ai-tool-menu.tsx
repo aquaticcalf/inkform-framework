@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AI_TOOLS, buildAiToolAction, buildPrompt, safeOrigin, type AiToolId } from './ai-tools';
+import { defaultAiToolIcons } from './ai-tool-icons';
 
 /**
  * AiToolMenu — a right-rail list of "hand this page to an AI tool" actions:
@@ -19,9 +20,10 @@ import { AI_TOOLS, buildAiToolAction, buildPrompt, safeOrigin, type AiToolId } f
  *
  * Framework components don't bundle an icon library (see ARCHITECTURE.md
  * §5) — `renderIcon` follows the same convention as Sidebar/DocsShell's own
- * `renderIcon` prop. Without one, a small brand-neutral built-in glyph is
- * used (a generic "copy" icon, and a generic external-link arrow for every
- * other item) rather than reproducing any tool's actual logo mark.
+ * `renderIcon` prop. Without one, a small monochrome brand mark per tool
+ * (./ai-tool-icons, single-color `currentColor` glyphs from thesvg.org) is
+ * used rather than reproducing any tool's multi-color logo, so icons inherit
+ * the theme's text color just like the previous generic arrow/copy glyphs.
  */
 
 /* ─────────────────────────────────────────────
@@ -75,8 +77,8 @@ export interface AiToolMenuProps {
    * map once with real icons (e.g. a small constant in lib/icons.tsx) and
    * pass it down as data, the same way Sidebar/DocsShell's own `renderIcon`
    * convention resolves icons into ReactNode server-side before they ever
-   * reach a component. Falls back to a small built-in glyph per tool for any
-   * id not present in the map.
+   * reach a component. Falls back to a small monochrome brand mark per tool
+   * (./ai-tool-icons) for any id not present in the map.
    */
   icons?: Partial<Record<AiToolId, React.ReactNode>>;
   /** Extra class name on the root <nav>. */
@@ -84,9 +86,10 @@ export interface AiToolMenuProps {
 }
 
 /* ─────────────────────────────────────────────
-   Default icons — dependency-free, brand-neutral (no framework package
-   bundles an icon library; see ARCHITECTURE.md §5). A theme can pass real
-   per-tool icons via `renderIcon`.
+   Default icons — dependency-free brand-neutral glyphs for actions without a
+   brand mark (copy page, copied check, external-link). Real per-tool
+   monochrome brand marks live in ./ai-tool-icons; a theme can override any
+   of those via the `icons` prop.
 ───────────────────────────────────────────── */
 
 function CopyGlyph() {
@@ -192,6 +195,7 @@ export function AiToolMenu({
 
   function icon(tool: AiToolId, isCommand: boolean): React.ReactNode {
     if (icons?.[tool]) return icons[tool] as React.ReactNode;
+    if (defaultAiToolIcons[tool]) return defaultAiToolIcons[tool] as React.ReactNode;
     if (isCommand) return <CopyGlyph />;
     return defaultIcon(tool);
   }

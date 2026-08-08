@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AI_TOOLS, buildAiToolAction, safeOrigin, type AiToolAction } from './ai-tools';
+import { defaultAiToolIcons } from './ai-tool-icons';
 
 /**
  * Per-page actions: "Copy as Markdown" and an "Open" menu (view the raw
@@ -14,7 +15,8 @@ import { AI_TOOLS, buildAiToolAction, safeOrigin, type AiToolAction } from './ai
  *
  * Both are Client Components and take only serializable props (an `icons`
  * map of pre-rendered ReactNode per tool, mirroring AiToolMenu — a live
- * function prop can't cross the Server → Client boundary).
+ * function prop can't cross the Server → Client boundary). Tools without an
+ * entry fall back to a monochrome brand mark per tool (./ai-tool-icons).
  */
 
 /* ─────────────────────────────────────────────
@@ -271,6 +273,7 @@ export function ViewOptionsPopover({
 
   function icon(id: string, isCommand: boolean): React.ReactNode {
     if (icons?.[id]) return icons[id] as React.ReactNode;
+    if (defaultAiToolIcons[id as keyof typeof defaultAiToolIcons]) return defaultAiToolIcons[id as keyof typeof defaultAiToolIcons] as React.ReactNode;
     if (isCommand) return <CopyGlyph />;
     if (id === 'markdown') return <TextGlyph />;
     return <ExternalGlyph />;

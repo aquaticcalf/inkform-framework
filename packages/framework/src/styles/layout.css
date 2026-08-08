@@ -637,6 +637,38 @@
 
 .fw-aitoolmenu-link:hover .fw-aitoolmenu-icon {
   color: var(--fw-primary);
+  animation: fw-aitool-wiggle 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Playful one-shot "hop + wag" for the per-tool icons on hover — bouncy
+   overshoot curve, squash-and-stretch scale, and independent translateY /
+   rotate layers, animating only transform/opacity (hardware-accelerated).
+   Also used by ViewOptionsPopover's menu items (widgets.css). */
+@keyframes fw-aitool-wiggle {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1, 1);
+  }
+  25% {
+    transform: translateY(-2px) rotate(-12deg) scale(0.92, 1.08);
+  }
+  45% {
+    transform: translateY(-1px) rotate(9deg) scale(1.08, 0.92);
+  }
+  65% {
+    transform: translateY(0) rotate(-6deg) scale(0.96, 1.04);
+  }
+  80% {
+    transform: translateY(0) rotate(3deg) scale(1.03, 0.97);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-aitoolmenu-link:hover .fw-aitoolmenu-icon {
+    animation: none;
+  }
 }
 
 .fw-aitoolmenu-label {
