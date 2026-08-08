@@ -1002,8 +1002,8 @@
   .fw-page-action-menu {
     position: fixed;
     top: calc(var(--fw-header-h) + 0.5rem);
-    left: 0.5rem;
-    right: 0.5rem;
+    left: 10vw;
+    right: 10vw;
     width: auto;
     min-width: 0;
     max-width: none;
